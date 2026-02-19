@@ -1,0 +1,25 @@
+type: "internal"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-internal-lb"
+
+network:
+  name: "my-vpc"
+  subnet: "my-subnet"
+
+proxy_subnet:
+  create: false
+
+ssl:
+  existing_certificate: "projects/my-gcp-project/regions/us-central1/sslCertificates/my-cert"
+
+ip_address: ""
+
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+  api:
+    cloud_run_service: "api-service"
+    paths:
+      - "/api"
+      - "/api/*"

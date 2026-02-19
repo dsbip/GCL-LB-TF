@@ -1,0 +1,67 @@
+# ==============================================================================
+# Internal Application Load Balancer Configuration
+# ==============================================================================
+
+type: "internal"  # "internal" | "external" | "external_regional"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-internal-lb"
+
+# ------------------------------------------------------------------------------
+# Network configuration
+# ------------------------------------------------------------------------------
+network:
+  name: "my-vpc"       # VPC network name or self_link
+  subnet: "my-subnet"  # Subnet for the forwarding rule (must be in the same region)
+
+# ------------------------------------------------------------------------------
+# Proxy-only subnet (required by internal Application Load Balancers)
+#   - Set create: true  to have the module create it
+#   - Set create: false if the proxy-only subnet already exists in the VPC/region
+# ------------------------------------------------------------------------------
+proxy_subnet:
+  create: true
+  name: "my-internal-lb-proxy-subnet"
+  ip_cidr_range: "10.129.0.0/23"
+
+# ------------------------------------------------------------------------------
+# SSL configuration (HTTPS)
+#   Option A — self-managed certificate (provide PEM file paths):
+#     certificate_file: "certs/cert.pem"
+#     private_key_file: "certs/key.pem"
+#
+#   Option B — reference an existing regional SSL certificate:
+#     existing_certificate: "projects/my-gcp-project/regions/us-central1/sslCertificates/my-cert"
+# ------------------------------------------------------------------------------
+ssl:
+  certificate_file: "certs/cert.pem"
+  private_key_file: "certs/key.pem"
+
+# ------------------------------------------------------------------------------
+# Optional static internal IP address for the forwarding rule.
+# Leave empty ("") to let GCP auto-assign an IP from the subnet.
+# ------------------------------------------------------------------------------
+ip_address: ""
+
+# ------------------------------------------------------------------------------
+# Backends — Cloud Run services exposed through the load balancer.
+#
+# Rules:
+#   - Exactly one backend must be named "default" (the catch-all).
+#   - All other backends must include a "paths" list for URL path routing.
+# ------------------------------------------------------------------------------
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+
+  api:
+    cloud_run_service: "api-service"
+    paths:
+      - "/api"
+      - "/api/*"
+
+  admin:
+    cloud_run_service: "admin-service"
+    paths:
+      - "/admin"
+      - "/admin/*"

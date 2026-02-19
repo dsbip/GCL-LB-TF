@@ -1,0 +1,44 @@
+# ==============================================================================
+# Global External Application Load Balancer Configuration
+# ==============================================================================
+
+type: "external"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-external-lb"
+
+# ------------------------------------------------------------------------------
+# SSL configuration
+#   Option A — Google-managed certificate (recommended for external):
+#     managed_domains: ["app.example.com"]
+#
+#   Option B — self-managed certificate (provide PEM file paths):
+#     certificate_file: "certs/cert.pem"
+#     private_key_file: "certs/key.pem"
+#
+#   Option C — reference an existing global SSL certificate:
+#     existing_certificate: "projects/my-gcp-project/global/sslCertificates/my-cert"
+# ------------------------------------------------------------------------------
+ssl:
+  managed_domains:
+    - "app.example.com"
+
+# ------------------------------------------------------------------------------
+# Optional static external IP address for the global forwarding rule.
+# Leave empty ("") to let GCP auto-assign a public IP.
+# ------------------------------------------------------------------------------
+ip_address: ""
+
+# ------------------------------------------------------------------------------
+# Backends — Cloud Run services exposed through the load balancer.
+# NEGs are regional, but the backend services / URL map are global.
+# ------------------------------------------------------------------------------
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+
+  api:
+    cloud_run_service: "api-service"
+    paths:
+      - "/api"
+      - "/api/*"

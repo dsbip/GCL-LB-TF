@@ -1,0 +1,43 @@
+# ==============================================================================
+# Regional External Application Load Balancer Configuration
+# ==============================================================================
+
+type: "external_regional"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-ext-regional-lb"
+
+# ------------------------------------------------------------------------------
+# Network configuration
+# Required for regional external ALBs (proxy-only subnet lives in this VPC).
+# subnet is not used for the forwarding rule, but included for proxy_subnet.
+# ------------------------------------------------------------------------------
+network:
+  name: "my-vpc"
+
+# ------------------------------------------------------------------------------
+# Proxy-only subnet (required by regional external ALBs)
+# ------------------------------------------------------------------------------
+proxy_subnet:
+  create: true
+  name: "my-ext-regional-lb-proxy-subnet"
+  ip_cidr_range: "10.130.0.0/23"
+
+# ------------------------------------------------------------------------------
+# SSL configuration (same options as internal)
+# ------------------------------------------------------------------------------
+ssl:
+  certificate_file: "certs/cert.pem"
+  private_key_file: "certs/key.pem"
+
+ip_address: ""
+
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+
+  api:
+    cloud_run_service: "api-service"
+    paths:
+      - "/api"
+      - "/api/*"
