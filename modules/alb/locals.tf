@@ -59,6 +59,22 @@ locals {
   )
 
   # ---------------------------------------------------------------------------
+  # SSL policy
+  # ---------------------------------------------------------------------------
+  ssl_policy_existing    = try(local.config.ssl_policy.existing, "")
+  ssl_policy_profile     = try(local.config.ssl_policy.profile, "")
+  ssl_policy_min_tls     = try(local.config.ssl_policy.min_tls_version, "TLS_1_2")
+  ssl_policy_custom_features = try(local.config.ssl_policy.custom_features, [])
+
+  create_ssl_policy = local.ssl_policy_existing == "" && local.ssl_policy_profile != ""
+
+  ssl_policy_self_link = (
+    local.create_ssl_policy
+    ? google_compute_ssl_policy.this[0].self_link
+    : local.ssl_policy_existing != "" ? local.ssl_policy_existing : null
+  )
+
+  # ---------------------------------------------------------------------------
   # Optional static IP
   # ---------------------------------------------------------------------------
   ip_address = try(local.config.ip_address, "")

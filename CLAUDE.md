@@ -32,6 +32,7 @@ Terraform module for deploying GCP Application Load Balancers (internal, global 
 - **YAML-driven config**: The module takes a single `config_file` variable. All resource configuration is decoded from YAML via `yamldecode(file(...))`.
 - **Backends must be normalized**: YAML-decoded objects have inconsistent value shapes (some backends have `paths`, some don't). The `backends` local uses a `for` expression to normalize all values to `{ cloud_run_service, paths }` — this is required for `for_each` ternary conditionals to work in Terraform 1.2.
 - **NEGs are always regional**: Even for global external ALBs, serverless NEGs (`google_compute_region_network_endpoint_group`) are regional. The global backend service references these regional NEGs.
+- **SSL policy is global**: `google_compute_ssl_policy` is a global resource (no regional variant). Both regional and global target HTTPS proxies reference it by self_link. The module can create one or accept a pre-existing policy self_link via `ssl_policy.existing`.
 
 ## Terraform Compatibility Notes
 

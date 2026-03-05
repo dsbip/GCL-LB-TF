@@ -30,6 +30,20 @@ ssl:
   certificate_file: "certs/cert.pem"
   private_key_file: "certs/key.pem"
 
+# ------------------------------------------------------------------------------
+# SSL policy (optional) — controls TLS versions and cipher suites.
+#   Option A — create a new policy:
+#     profile: "MODERN" | "RESTRICTED" | "COMPATIBLE" | "CUSTOM"
+#     min_tls_version: "TLS_1_0" | "TLS_1_1" | "TLS_1_2" (default: TLS_1_2)
+#     custom_features: [...]  # only when profile is CUSTOM
+#
+#   Option B — reference an existing SSL policy:
+#     existing: "projects/my-gcp-project/global/sslPolicies/my-policy"
+# ------------------------------------------------------------------------------
+# ssl_policy:
+#   profile: "MODERN"
+#   min_tls_version: "TLS_1_2"
+
 ip_address: ""
 
 backends:

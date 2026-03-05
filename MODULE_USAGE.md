@@ -66,8 +66,13 @@ ssl:                          # see §8
   # existing_certificate: "projects/.../sslCertificates/..."
   # managed_domains: ["app.example.com"]
 
+# ─── SSL policy (optional) ──────────────────────────────────────────────────
+# ssl_policy:                  # see §9
+#   profile: "MODERN"
+#   min_tls_version: "TLS_1_2"
+
 # ─── Backends ─────────────────────────────────────────────────────────────────
-backends:                     # see §9
+backends:                     # see §10
   default:
     cloud_run_service: "frontend"
   api:
@@ -153,6 +158,7 @@ Base name prefix for all created GCP resources. Each resource appends a suffix:
 | URL map | `<name>-url-map` |
 | SSL certificate | `<name>-cert-<random>` (uses `name_prefix`) |
 | Managed SSL certificate | `<name>-managed-cert` |
+| SSL policy | `<name>-ssl-policy` |
 | HTTPS proxy | `<name>-https-proxy` |
 | Forwarding rule | `<name>-fr` |
 | Proxy-only subnet | `<name>-proxy-subnet` (default, overridable) |
@@ -369,7 +375,69 @@ Creates a `google_compute_managed_ssl_certificate`. Certificate provisioning hap
 
 ---
 
-### §9 `backends` Block
+### §9 `ssl_policy` Block
+
+| | |
+|---|---|
+| **Required** | No |
+| **Applies to** | All types |
+
+Configures a [GCP SSL policy](https://cloud.google.com/load-balancing/docs/ssl-policies-concepts) on the target HTTPS proxy. An SSL policy controls which TLS versions and cipher suites are accepted by the load balancer. If omitted, GCP uses its default `COMPATIBLE` profile (TLS 1.0+, broadest cipher set).
+
+There are two mutually exclusive strategies:
+
+#### Strategy A: Create a new SSL policy
+
+The module creates a `google_compute_ssl_policy` resource.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `ssl_policy.profile` | `string` | **Yes** | — | GCP SSL policy profile: `"MODERN"`, `"RESTRICTED"`, `"COMPATIBLE"`, or `"CUSTOM"`. |
+| `ssl_policy.min_tls_version` | `string` | No | `"TLS_1_2"` | Minimum TLS version: `"TLS_1_0"`, `"TLS_1_1"`, or `"TLS_1_2"`. |
+| `ssl_policy.custom_features` | `list(string)` | Only when `profile: "CUSTOM"` | `[]` | List of individual SSL cipher suites to enable (e.g. `["TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"]`). |
+
+```yaml
+# Modern profile — TLS 1.2+, strong ciphers only
+ssl_policy:
+  profile: "MODERN"
+  min_tls_version: "TLS_1_2"
+
+# Custom profile — hand-pick cipher suites
+ssl_policy:
+  profile: "CUSTOM"
+  min_tls_version: "TLS_1_2"
+  custom_features:
+    - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+    - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+```
+
+#### Strategy B: Reference an existing SSL policy
+
+Use a pre-existing `google_compute_ssl_policy` resource by self-link. No policy resource is created by the module.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ssl_policy.existing` | `string` | **Yes** | Full self-link of the existing SSL policy. |
+
+```yaml
+ssl_policy:
+  existing: "projects/my-project/global/sslPolicies/my-policy"
+```
+
+#### GCP SSL policy profiles
+
+| Profile | TLS versions | Cipher suites |
+|---------|-------------|---------------|
+| `COMPATIBLE` | TLS 1.0+ | Broadest set (GCP default when no policy is attached) |
+| `MODERN` | TLS 1.2+ | Broad set of modern ciphers |
+| `RESTRICTED` | TLS 1.2+ | Reduced set of strong ciphers |
+| `CUSTOM` | Configurable | Hand-picked from GCP's supported list |
+
+> **Note**: `google_compute_ssl_policy` is a **global** resource — there is no regional variant. Both regional and global target HTTPS proxies reference it by self-link.
+
+---
+
+### §10 `backends` Block
 
 | | |
 |---|---|
@@ -473,6 +541,7 @@ The URL map then references these backend services:
 | `google_compute_region_ssl_certificate` | `internal` / `external_regional` with cert files | 0 or 1 |
 | `google_compute_ssl_certificate` (global) | `external` with cert files | 0 or 1 |
 | `google_compute_managed_ssl_certificate` | `external` with `managed_domains` | 0 or 1 |
+| `google_compute_ssl_policy` | Any type, when `ssl_policy.profile` is set | 0 or 1 |
 | `google_compute_region_target_https_proxy` | `internal` / `external_regional` | 1 |
 | `google_compute_target_https_proxy` (global) | `external` | 1 |
 | `google_compute_forwarding_rule` | `internal` / `external_regional` | 1 |

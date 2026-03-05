@@ -107,6 +107,18 @@ resource "google_compute_region_ssl_certificate" "this" {
   }
 }
 
+# --- SSL policy (global resource, used by all LB types) ---
+
+resource "google_compute_ssl_policy" "this" {
+  count = local.create_ssl_policy ? 1 : 0
+
+  project         = local.project
+  name            = "${local.name}-ssl-policy"
+  profile         = local.ssl_policy_profile
+  min_tls_version = local.ssl_policy_min_tls
+  custom_features = local.ssl_policy_profile == "CUSTOM" ? local.ssl_policy_custom_features : null
+}
+
 # --- Target HTTPS proxy (regional) ---
 
 resource "google_compute_region_target_https_proxy" "this" {
@@ -117,6 +129,7 @@ resource "google_compute_region_target_https_proxy" "this" {
   region           = local.region
   url_map          = google_compute_region_url_map.this[0].id
   ssl_certificates = [local.regional_ssl_certificate]
+  ssl_policy       = local.ssl_policy_self_link
 }
 
 # --- Forwarding rule (regional) ---
@@ -234,6 +247,7 @@ resource "google_compute_target_https_proxy" "this" {
   name             = "${local.name}-https-proxy"
   url_map          = google_compute_url_map.this[0].id
   ssl_certificates = local.global_ssl_certificates
+  ssl_policy       = local.ssl_policy_self_link
 }
 
 # --- Global forwarding rule ---
