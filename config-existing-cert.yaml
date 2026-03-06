@@ -27,6 +27,8 @@ ssl:
 #   profile: "MODERN"
 #   min_tls_version: "TLS_1_2"
 
+# IP address: leave empty to create a reserved static IP, or provide a
+# specific IP / self-link to use a pre-existing address.
 ip_address: ""
 
 backends:

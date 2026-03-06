@@ -75,9 +75,24 @@ locals {
   )
 
   # ---------------------------------------------------------------------------
-  # Optional static IP
+  # Static IP address
   # ---------------------------------------------------------------------------
-  ip_address = try(local.config.ip_address, "")
+  ip_address_existing    = try(local.config.ip_address, "")
+  create_static_ip       = local.ip_address_existing == ""
+  static_ip_address_type = local.is_internal ? "INTERNAL" : "EXTERNAL"
+
+  # Resolved IP for the forwarding rule
+  regional_ip_address = (
+    local.is_regional && local.create_static_ip
+    ? google_compute_address.this[0].self_link
+    : local.ip_address_existing != "" ? local.ip_address_existing : null
+  )
+
+  global_ip_address = (
+    local.is_global && local.create_static_ip
+    ? google_compute_global_address.this[0].self_link
+    : local.ip_address_existing != "" ? local.ip_address_existing : null
+  )
 
   # ---------------------------------------------------------------------------
   # Backends

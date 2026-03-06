@@ -132,6 +132,19 @@ resource "google_compute_region_target_https_proxy" "this" {
   ssl_policy       = local.ssl_policy_self_link
 }
 
+# --- Static IP address (regional) ---
+
+resource "google_compute_address" "this" {
+  count = local.is_regional && local.create_static_ip ? 1 : 0
+
+  project      = local.project
+  name         = "${local.name}-ip"
+  region       = local.region
+  address_type = local.static_ip_address_type
+  subnetwork   = local.is_internal ? local.subnetwork : null
+  network_tier = local.is_external_regional ? "PREMIUM" : null
+}
+
 # --- Forwarding rule (regional) ---
 
 resource "google_compute_forwarding_rule" "this" {
@@ -146,7 +159,7 @@ resource "google_compute_forwarding_rule" "this" {
   ip_protocol           = "TCP"
   network               = local.is_internal ? local.network : null
   subnetwork            = local.is_internal ? local.subnetwork : null
-  ip_address            = local.ip_address != "" ? local.ip_address : null
+  ip_address            = local.regional_ip_address
 
   depends_on = [
     google_compute_subnetwork.proxy_only,
@@ -250,6 +263,16 @@ resource "google_compute_target_https_proxy" "this" {
   ssl_policy       = local.ssl_policy_self_link
 }
 
+# --- Static IP address (global) ---
+
+resource "google_compute_global_address" "this" {
+  count = local.is_global && local.create_static_ip ? 1 : 0
+
+  project      = local.project
+  name         = "${local.name}-ip"
+  address_type = "EXTERNAL"
+}
+
 # --- Global forwarding rule ---
 
 resource "google_compute_global_forwarding_rule" "this" {
@@ -261,5 +284,5 @@ resource "google_compute_global_forwarding_rule" "this" {
   target                = google_compute_target_https_proxy.this[0].id
   port_range            = "443"
   ip_protocol           = "TCP"
-  ip_address            = local.ip_address != "" ? local.ip_address : null
+  ip_address            = local.global_ip_address
 }

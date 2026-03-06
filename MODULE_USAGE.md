@@ -160,6 +160,7 @@ Base name prefix for all created GCP resources. Each resource appends a suffix:
 | Managed SSL certificate | `<name>-managed-cert` |
 | SSL policy | `<name>-ssl-policy` |
 | HTTPS proxy | `<name>-https-proxy` |
+| Static IP address | `<name>-ip` |
 | Forwarding rule | `<name>-fr` |
 | Proxy-only subnet | `<name>-proxy-subnet` (default, overridable) |
 
@@ -177,27 +178,27 @@ name: "myapp-prod-lb"
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
-| **Default** | `""` (auto-assign) |
+| **Default** | `""` (module creates a reserved static IP) |
 | **Applies to** | All types |
 
-Static IP address for the forwarding rule. Behaviour depends on the LB type:
+IP address for the forwarding rule. When omitted or set to `""`, the module **creates a reserved static IP address** (`google_compute_address` for regional types, `google_compute_global_address` for global). This ensures the LB IP is stable across forwarding rule recreations.
 
-| LB type | What to provide | Auto-assign behaviour |
-|---------|-----------------|----------------------|
-| `internal` | A private IP from the forwarding rule's subnet (e.g. `"10.0.1.100"`) | GCP picks a free IP from the subnet |
-| `external_regional` | A reserved regional external IP address or its self-link | GCP assigns an ephemeral public IP |
-| `external` | A reserved global external IP address or its self-link | GCP assigns an ephemeral anycast public IP |
+To use a **pre-existing** reserved address instead, provide the IP or its self-link:
 
-Leave as `""` or omit entirely to let GCP auto-assign.
+| LB type | What to provide | Default (empty) behaviour |
+|---------|-----------------|--------------------------|
+| `internal` | A private IP from the subnet (e.g. `"10.0.1.100"`) or self-link | Module creates a regional `INTERNAL` static IP in the forwarding rule's subnet |
+| `external_regional` | A reserved regional external IP self-link | Module creates a regional `EXTERNAL` static IP |
+| `external` | A reserved global external IP self-link | Module creates a global external static IP |
 
 ```yaml
-# Auto-assign
+# Let the module create a reserved static IP (recommended)
 ip_address: ""
 
-# Static internal IP
+# Use a specific pre-existing internal IP
 ip_address: "10.0.1.100"
 
-# Reference a reserved global IP by self-link
+# Reference a pre-existing reserved IP by self-link
 ip_address: "projects/my-project/global/addresses/my-static-ip"
 ```
 
@@ -542,6 +543,8 @@ The URL map then references these backend services:
 | `google_compute_ssl_certificate` (global) | `external` with cert files | 0 or 1 |
 | `google_compute_managed_ssl_certificate` | `external` with `managed_domains` | 0 or 1 |
 | `google_compute_ssl_policy` | Any type, when `ssl_policy.profile` is set | 0 or 1 |
+| `google_compute_address` | `internal` / `external_regional`, when `ip_address` is empty | 0 or 1 |
+| `google_compute_global_address` | `external`, when `ip_address` is empty | 0 or 1 |
 | `google_compute_region_target_https_proxy` | `internal` / `external_regional` | 1 |
 | `google_compute_target_https_proxy` (global) | `external` | 1 |
 | `google_compute_forwarding_rule` | `internal` / `external_regional` | 1 |

@@ -38,8 +38,9 @@ ssl:
 #   min_tls_version: "TLS_1_2"
 
 # ------------------------------------------------------------------------------
-# Optional static external IP address for the global forwarding rule.
-# Leave empty ("") to let GCP auto-assign a public IP.
+# IP address for the global forwarding rule.
+# Leave empty ("") or omit to have the module create a reserved static IP.
+# Provide a self-link to use a pre-existing reserved address.
 # ------------------------------------------------------------------------------
 ip_address: ""
 

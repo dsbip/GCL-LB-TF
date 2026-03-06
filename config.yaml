@@ -52,8 +52,9 @@ ssl:
 #   min_tls_version: "TLS_1_2"
 
 # ------------------------------------------------------------------------------
-# Optional static internal IP address for the forwarding rule.
-# Leave empty ("") to let GCP auto-assign an IP from the subnet.
+# IP address for the forwarding rule.
+# Leave empty ("") or omit to have the module create a reserved static IP.
+# Provide a specific IP or self-link to use a pre-existing address.
 # ------------------------------------------------------------------------------
 ip_address: ""
 

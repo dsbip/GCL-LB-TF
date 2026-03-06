@@ -44,6 +44,11 @@ ssl:
 #   profile: "MODERN"
 #   min_tls_version: "TLS_1_2"
 
+# ------------------------------------------------------------------------------
+# IP address for the forwarding rule.
+# Leave empty ("") or omit to have the module create a reserved static IP.
+# Provide a self-link to use a pre-existing reserved address.
+# ------------------------------------------------------------------------------
 ip_address: ""
 
 backends:
