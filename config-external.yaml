@@ -47,6 +47,12 @@ ip_address: ""
 # ------------------------------------------------------------------------------
 # Backends — Cloud Run services exposed through the load balancer.
 # NEGs are regional, but the backend services / URL map are global.
+#
+# Routing options per backend:
+#   paths: ["/api", "/api/*"]           — route by URL path (wildcard host)
+#   hosts: ["api.example.com"]          — route by hostname
+#   hosts + paths                       — route by hostname AND path
+#   (neither)                           — must be named "default" (catch-all)
 # ------------------------------------------------------------------------------
 backends:
   default:

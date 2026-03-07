@@ -101,11 +101,55 @@ locals {
     for k, v in local.config.backends : k => {
       cloud_run_service = v.cloud_run_service
       paths             = try(v.paths, [])
+      hosts             = try(tolist(v.hosts), try([tostring(v.hosts)], ["*"]))
     }
   }
 
-  # Non-default backends (those with path rules)
-  path_backends = {
+  # Non-default backends
+  non_default_backends = {
     for k, v in local.backends : k => v if k != "default"
+  }
+
+  # Wildcard path backends: routed by path under all hosts (current behavior)
+  wildcard_path_backends = {
+    for k, v in local.non_default_backends : k => v
+    if join(",", sort(v.hosts)) == "*" && length(v.paths) > 0
+  }
+
+  # Host-specific backends: routed to specific hostnames
+  host_backends = {
+    for k, v in local.non_default_backends : k => v
+    if join(",", sort(v.hosts)) != "*"
+  }
+
+  # Group host backends by their sorted host key
+  host_group_keys = distinct([
+    for k, v in local.host_backends : join(",", sort(v.hosts))
+  ])
+
+  host_groups = {
+    for hk in local.host_group_keys : hk => {
+      hosts        = split(",", hk)
+      matcher_name = replace(replace(split(",", hk)[0], ".", "-"), "*", "star")
+      all_backends = {
+        for k, v in local.host_backends : k => v
+        if join(",", sort(v.hosts)) == hk
+      }
+    }
+  }
+
+  # For each host group, find the default backend (one without paths) or fall back to "default"
+  host_group_defaults = {
+    for hk, g in local.host_groups : hk => try(
+      [for k, v in g.all_backends : k if length(v.paths) == 0][0],
+      "default"
+    )
+  }
+
+  # For each host group, collect backends that have path rules
+  host_group_path_backends = {
+    for hk, g in local.host_groups : hk => {
+      for k, v in g.all_backends : k => v if length(v.paths) > 0
+    }
   }
 }

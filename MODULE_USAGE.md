@@ -78,6 +78,9 @@ backends:                     # see §10
   api:
     cloud_run_service: "api-service"
     paths: ["/api", "/api/*"]
+  admin:
+    cloud_run_service: "admin-service"
+    hosts: ["admin.example.com"]
 ```
 
 ---
@@ -449,9 +452,9 @@ A map of named backend definitions. Each key becomes part of the resource names 
 
 #### Rules
 
-1. **Exactly one entry must be named `"default"`**. This serves as the catch-all backend service in the URL map — any request that does not match a path rule is routed here.
-2. All **non-default** entries must include a `paths` list.
-3. The map **can contain just `"default"`** for a single-backend setup (no path routing).
+1. **Exactly one entry must be named `"default"`**. This serves as the catch-all backend service in the URL map — any request that does not match a host or path rule is routed here.
+2. Non-default entries must include at least one of `paths`, `hosts`, or both.
+3. The map **can contain just `"default"`** for a single-backend setup (no routing rules).
 
 #### `backends.<key>.cloud_run_service`
 
@@ -469,9 +472,9 @@ The Cloud Run service must already be deployed before running `terraform apply`.
 | | |
 |---|---|
 | **Type** | `list(string)` |
-| **Required** | **Yes** for non-default backends. Must be **omitted** for the `"default"` backend. |
+| **Required** | No. Use for path-based routing. Must be **omitted** for the `"default"` backend. |
 
-URL path patterns that route to this backend. Uses GCP URL map path matching syntax:
+URL path patterns that route to this backend under the wildcard host (`*`). Uses GCP URL map path matching syntax:
 
 | Pattern | Matches |
 |---------|---------|
@@ -482,32 +485,48 @@ URL path patterns that route to this backend. Uses GCP URL map path matching syn
 
 Path rules are evaluated in order of specificity. If a request matches multiple rules, the most specific path wins.
 
+#### `backends.<key>.hosts`
+
+| | |
+|---|---|
+| **Type** | `list(string)` |
+| **Required** | No. Use for host-based routing. Must be **omitted** for the `"default"` backend. |
+
+Hostnames that route to this backend. Each unique set of hosts creates a separate `host_rule` and `path_matcher` in the URL map.
+
+- A backend with `hosts` only (no `paths`) becomes the **default service** for requests matching those hosts.
+- A backend with both `hosts` and `paths` becomes a **path rule** under those hosts. Backends sharing the same `hosts` are grouped into the same path_matcher.
+- A backend with `paths` only (no `hosts`) routes under the wildcard host (`*`).
+
+#### Routing examples
+
 ```yaml
 backends:
-  # Catch-all — no paths, serves everything not matched by other rules
+  # Catch-all — serves everything not matched by other rules
   default:
     cloud_run_service: "frontend-service"
 
-  # API routes
+  # Path-based routing (any host)
   api:
     cloud_run_service: "api-service"
     paths:
       - "/api"
       - "/api/*"
 
-  # Admin panel
+  # Host-based routing — all requests to admin.example.com
   admin:
     cloud_run_service: "admin-service"
-    paths:
-      - "/admin"
-      - "/admin/*"
+    hosts:
+      - "admin.example.com"
 
-  # Static assets
-  static:
-    cloud_run_service: "cdn-service"
+  # Host + path — specific paths under a specific host
+  api-v2:
+    cloud_run_service: "api-v2-service"
+    hosts:
+      - "api.example.com"
     paths:
-      - "/static/*"
-      - "/assets/*"
+      - "/v2"
+      - "/v2/*"
 ```
 
 #### How backends map to GCP resources
@@ -698,7 +717,50 @@ backends:
       - "/api/*"
 ```
 
-### 5. Single Backend (No Path Routing)
+### 5. Host-Based Routing
+
+Route traffic by hostname. Each host gets its own `host_rule` and `path_matcher` in the URL map.
+
+```yaml
+type: "external"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-host-routing-lb"
+
+ssl:
+  managed_domains:
+    - "app.example.com"
+    - "api.example.com"
+    - "admin.example.com"
+
+ip_address: ""
+
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+
+  api:
+    cloud_run_service: "api-service"
+    hosts:
+      - "api.example.com"
+
+  admin:
+    cloud_run_service: "admin-service"
+    hosts:
+      - "admin.example.com"
+
+  docs:
+    cloud_run_service: "docs-service"
+    paths:
+      - "/docs"
+      - "/docs/*"
+```
+
+```bash
+terraform apply -var='config_file=config-host-routing.yaml'
+```
+
+### 6. Single Backend (No Routing)
 
 If you only have one Cloud Run service, just define the `default` backend. No path routing rules are created.
 

@@ -63,15 +63,26 @@ resource "google_compute_region_url_map" "this" {
   region          = local.region
   default_service = google_compute_region_backend_service.cloud_run["default"].id
 
+  # --- Wildcard host: path-based routing (existing behavior) ---
+
+  dynamic "host_rule" {
+    for_each = length(local.wildcard_path_backends) > 0 ? ["main"] : []
+
+    content {
+      hosts        = ["*"]
+      path_matcher = "main"
+    }
+  }
+
   dynamic "path_matcher" {
-    for_each = length(local.path_backends) > 0 ? ["main"] : []
+    for_each = length(local.wildcard_path_backends) > 0 ? ["main"] : []
 
     content {
       name            = "main"
       default_service = google_compute_region_backend_service.cloud_run["default"].id
 
       dynamic "path_rule" {
-        for_each = local.path_backends
+        for_each = local.wildcard_path_backends
 
         content {
           paths   = path_rule.value.paths
@@ -81,12 +92,32 @@ resource "google_compute_region_url_map" "this" {
     }
   }
 
+  # --- Host-specific routing ---
+
   dynamic "host_rule" {
-    for_each = length(local.path_backends) > 0 ? ["main"] : []
+    for_each = local.host_groups
 
     content {
-      hosts        = ["*"]
-      path_matcher = "main"
+      hosts        = host_rule.value.hosts
+      path_matcher = host_rule.value.matcher_name
+    }
+  }
+
+  dynamic "path_matcher" {
+    for_each = local.host_groups
+
+    content {
+      name            = path_matcher.value.matcher_name
+      default_service = google_compute_region_backend_service.cloud_run[local.host_group_defaults[path_matcher.key]].id
+
+      dynamic "path_rule" {
+        for_each = local.host_group_path_backends[path_matcher.key]
+
+        content {
+          paths   = path_rule.value.paths
+          service = google_compute_region_backend_service.cloud_run[path_rule.key].id
+        }
+      }
     }
   }
 }
@@ -195,8 +226,10 @@ resource "google_compute_url_map" "this" {
   name            = "${local.name}-url-map"
   default_service = google_compute_backend_service.cloud_run["default"].id
 
+  # --- Wildcard host: path-based routing (existing behavior) ---
+
   dynamic "host_rule" {
-    for_each = length(local.path_backends) > 0 ? ["main"] : []
+    for_each = length(local.wildcard_path_backends) > 0 ? ["main"] : []
 
     content {
       hosts        = ["*"]
@@ -205,14 +238,43 @@ resource "google_compute_url_map" "this" {
   }
 
   dynamic "path_matcher" {
-    for_each = length(local.path_backends) > 0 ? ["main"] : []
+    for_each = length(local.wildcard_path_backends) > 0 ? ["main"] : []
 
     content {
       name            = "main"
       default_service = google_compute_backend_service.cloud_run["default"].id
 
       dynamic "path_rule" {
-        for_each = local.path_backends
+        for_each = local.wildcard_path_backends
+
+        content {
+          paths   = path_rule.value.paths
+          service = google_compute_backend_service.cloud_run[path_rule.key].id
+        }
+      }
+    }
+  }
+
+  # --- Host-specific routing ---
+
+  dynamic "host_rule" {
+    for_each = local.host_groups
+
+    content {
+      hosts        = host_rule.value.hosts
+      path_matcher = host_rule.value.matcher_name
+    }
+  }
+
+  dynamic "path_matcher" {
+    for_each = local.host_groups
+
+    content {
+      name            = path_matcher.value.matcher_name
+      default_service = google_compute_backend_service.cloud_run[local.host_group_defaults[path_matcher.key]].id
+
+      dynamic "path_rule" {
+        for_each = local.host_group_path_backends[path_matcher.key]
 
         content {
           paths   = path_rule.value.paths

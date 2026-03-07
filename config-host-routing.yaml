@@ -1,0 +1,43 @@
+# ==============================================================================
+# Global External Application Load Balancer — Host-Based Routing Example
+# ==============================================================================
+#
+# Routes traffic by hostname:
+#   api.example.com     → api-service
+#   admin.example.com   → admin-service
+#   */docs, */docs/*    → docs-service  (path-based, any host)
+#   everything else     → frontend-service
+# ==============================================================================
+
+type: "external"
+project_id: "my-gcp-project"
+region: "us-central1"
+name: "my-host-routing-lb"
+
+ssl:
+  managed_domains:
+    - "app.example.com"
+    - "api.example.com"
+    - "admin.example.com"
+
+ip_address: ""
+
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+
+  api:
+    cloud_run_service: "api-service"
+    hosts:
+      - "api.example.com"
+
+  admin:
+    cloud_run_service: "admin-service"
+    hosts:
+      - "admin.example.com"
+
+  docs:
+    cloud_run_service: "docs-service"
+    paths:
+      - "/docs"
+      - "/docs/*"

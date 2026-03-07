@@ -63,7 +63,10 @@ ip_address: ""
 #
 # Rules:
 #   - Exactly one backend must be named "default" (the catch-all).
-#   - All other backends must include a "paths" list for URL path routing.
+#   - Non-default backends route by path, host, or both:
+#       paths: ["/api", "/api/*"]         — route by URL path (wildcard host)
+#       hosts: ["api.example.com"]        — route by hostname
+#       hosts + paths                     — route by hostname AND path
 # ------------------------------------------------------------------------------
 backends:
   default:
