@@ -31,6 +31,9 @@ ssl:
 # specific IP / self-link to use a pre-existing address.
 ip_address: ""
 
+# Cloud Armor security policy (optional) — applied to all backend services.
+# security_policy: "projects/my-gcp-project/global/securityPolicies/my-policy"
+
 backends:
   default:
     cloud_run_service: "frontend-service"

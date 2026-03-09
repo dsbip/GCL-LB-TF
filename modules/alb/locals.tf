@@ -95,6 +95,11 @@ locals {
   )
 
   # ---------------------------------------------------------------------------
+  # Cloud Armor security policy
+  # ---------------------------------------------------------------------------
+  security_policy_default = try(local.config.security_policy, "")
+
+  # ---------------------------------------------------------------------------
   # Backends
   # ---------------------------------------------------------------------------
   backends = {
@@ -102,6 +107,7 @@ locals {
       cloud_run_service = v.cloud_run_service
       paths             = try(v.paths, [])
       hosts             = try(tolist(v.hosts), try([tostring(v.hosts)], ["*"]))
+      security_policy   = try(v.security_policy, local.security_policy_default)
     }
   }
 

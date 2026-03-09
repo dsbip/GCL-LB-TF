@@ -31,10 +31,11 @@ Terraform module for deploying GCP Application Load Balancers (internal, global 
 
 - **Single module, three LB types**: The `type` field in YAML (`internal` | `external` | `external_regional`) controls which GCP resources are created. Internal and external_regional share regional resources; external uses global resources.
 - **YAML-driven config**: The module takes a single `config_file` variable. All resource configuration is decoded from YAML via `yamldecode(file(...))`.
-- **Backends must be normalized**: YAML-decoded objects have inconsistent value shapes (some backends have `paths`, some don't). The `backends` local uses a `for` expression to normalize all values to `{ cloud_run_service, paths, hosts }` — this is required for `for_each` ternary conditionals to work in Terraform 1.2.
+- **Backends must be normalized**: YAML-decoded objects have inconsistent value shapes (some backends have `paths`, some don't). The `backends` local uses a `for` expression to normalize all values to `{ cloud_run_service, paths, hosts, security_policy }` — this is required for `for_each` ternary conditionals to work in Terraform 1.2.
 - **Host-based routing**: Backends with `hosts` are grouped by their sorted host set into separate `host_rule` + `path_matcher` pairs in the URL map. Backends with `paths` only go into the wildcard (`*`) path_matcher. Backends with both `hosts` and `paths` create path rules under their host's path_matcher.
 - **NEGs are always regional**: Even for global external ALBs, serverless NEGs (`google_compute_region_network_endpoint_group`) are regional. The global backend service references these regional NEGs.
 - **SSL policy is global**: `google_compute_ssl_policy` is a global resource (no regional variant). Both regional and global target HTTPS proxies reference it by self_link. The module can create one or accept a pre-existing policy self_link via `ssl_policy.existing`.
+- **Cloud Armor**: A top-level `security_policy` applies to all backend services. Per-backend `security_policy` overrides the default. The module references existing `google_compute_security_policy` resources by self_link — it does not create them.
 
 ## Terraform Compatibility Notes
 

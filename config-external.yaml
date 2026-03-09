@@ -45,6 +45,13 @@ ssl:
 ip_address: ""
 
 # ------------------------------------------------------------------------------
+# Cloud Armor security policy (optional).
+# Provide the self-link of an existing google_compute_security_policy.
+# Applied to all backend services. Can be overridden per-backend.
+# ------------------------------------------------------------------------------
+# security_policy: "projects/my-gcp-project/global/securityPolicies/my-policy"
+
+# ------------------------------------------------------------------------------
 # Backends — Cloud Run services exposed through the load balancer.
 # NEGs are regional, but the backend services / URL map are global.
 #
@@ -53,6 +60,8 @@ ip_address: ""
 #   hosts: ["api.example.com"]          — route by hostname
 #   hosts + paths                       — route by hostname AND path
 #   (neither)                           — must be named "default" (catch-all)
+#
+# Per-backend security_policy overrides the top-level security_policy.
 # ------------------------------------------------------------------------------
 backends:
   default:

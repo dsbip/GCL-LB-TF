@@ -71,8 +71,11 @@ ssl:                          # see §8
 #   profile: "MODERN"
 #   min_tls_version: "TLS_1_2"
 
+# ─── Cloud Armor (optional) ─────────────────────────────────────────────────
+# security_policy: "projects/.../securityPolicies/..."  # see §10
+
 # ─── Backends ─────────────────────────────────────────────────────────────────
-backends:                     # see §10
+backends:                     # see §11
   default:
     cloud_run_service: "frontend"
   api:
@@ -441,7 +444,31 @@ ssl_policy:
 
 ---
 
-### §10 `backends` Block
+### §10 `security_policy`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Required** | No |
+| **Default** | `""` (no policy) |
+| **Applies to** | All types |
+
+Self-link of an existing [Cloud Armor security policy](https://cloud.google.com/armor/docs/security-policy-overview) (`google_compute_security_policy`) to attach to **all** backend services. Cloud Armor policies provide DDoS protection, WAF rules, IP allowlisting/denylisting, rate limiting, and bot management.
+
+This is a **top-level default** — individual backends can override it with their own `security_policy` field (see §11).
+
+```yaml
+# Apply a Cloud Armor policy to all backends
+security_policy: "projects/my-project/global/securityPolicies/my-waf-policy"
+```
+
+Set to `""` or omit to leave backends without a security policy.
+
+> **Note**: Cloud Armor policies are complex resources with rules, priorities, and match conditions. This module does not create them — manage them separately and reference by self-link.
+
+---
+
+### §11 `backends` Block
 
 | | |
 |---|---|
@@ -527,6 +554,25 @@ backends:
     paths:
       - "/v2"
       - "/v2/*"
+```
+
+#### `backends.<key>.security_policy`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Required** | No |
+
+Self-link of a Cloud Armor security policy to attach to this specific backend service. Overrides the top-level `security_policy` (§10) for this backend only.
+
+```yaml
+backends:
+  default:
+    cloud_run_service: "frontend-service"
+  api:
+    cloud_run_service: "api-service"
+    paths: ["/api", "/api/*"]
+    security_policy: "projects/my-project/global/securityPolicies/api-waf-policy"
 ```
 
 #### How backends map to GCP resources

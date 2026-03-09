@@ -45,6 +45,7 @@ resource "google_compute_region_backend_service" "cloud_run" {
   region                = local.region
   protocol              = "HTTPS"
   load_balancing_scheme = local.load_balancing_scheme
+  security_policy       = each.value.security_policy != "" ? each.value.security_policy : null
 
   backend {
     group            = google_compute_region_network_endpoint_group.cloud_run[each.key].id
@@ -210,6 +211,7 @@ resource "google_compute_backend_service" "cloud_run" {
   name                  = "${local.name}-bs-${each.key}"
   protocol              = "HTTPS"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  security_policy       = each.value.security_policy != "" ? each.value.security_policy : null
 
   backend {
     group          = google_compute_region_network_endpoint_group.cloud_run[each.key].id
